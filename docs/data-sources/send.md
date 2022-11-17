@@ -6,14 +6,14 @@ The send data source provides the ability to send web requests like curl.
 
 ```terraform
 data "webrequest_send" "example" {
-  URL = "https://example.com/"
+  url = "https://example.com/"
   method = "GET"
   
 }
 ```
 ## Attributes Reference
 
-* URL
+* url
 * method
 * body
 * header a list of request header. See [Header](#Header) below for details

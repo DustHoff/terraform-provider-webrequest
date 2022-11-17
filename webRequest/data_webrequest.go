@@ -21,7 +21,7 @@ func dataWebRequest() *schema.Resource {
 				Computed:    true,
 				Description: "Response body of the requested resource",
 			},
-			"URL": &schema.Schema{
+			"url": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "URL of the target service. It includes schema, hostname, port and context path",
@@ -68,7 +68,7 @@ func sendRequest(ctx context.Context, d *schema.ResourceData, m interface{}) dia
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	req, err := http.NewRequest(d.Get("method").(string), d.Get("URL").(string), strings.NewReader(d.Get("body").(string)))
+	req, err := http.NewRequest(d.Get("method").(string), d.Get("url").(string), strings.NewReader(d.Get("body").(string)))
 	headers := d.Get("header").([]interface{})
 	for _, entry := range headers {
 		element := entry.(map[string]interface{})
