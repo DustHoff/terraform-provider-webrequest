@@ -21,6 +21,17 @@ func dataWebRequest() *schema.Resource {
 				Computed:    true,
 				Description: "Response body of the requested resource",
 			},
+			"expires": &schema.Schema{
+				Type:        schema.TypeFloat,
+				Computed:    true,
+				Description: "Unix Timestamp",
+			},
+			"ttl": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     0,
+				Description: "time to live about the received response",
+			},
 			"url": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
@@ -68,6 +79,9 @@ func sendRequest(ctx context.Context, d *schema.ResourceData, m interface{}) dia
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
+	if d.Get("expires").(int64) < time.Now().Unix() && d.Get("result") != nil {
+		return diags
+	}
 	req, err := http.NewRequest(d.Get("method").(string), d.Get("url").(string), strings.NewReader(d.Get("body").(string)))
 	headers := d.Get("header").([]interface{})
 	for _, entry := range headers {
@@ -95,6 +109,12 @@ func sendRequest(ctx context.Context, d *schema.ResourceData, m interface{}) dia
 		return diag.FromErr(err)
 	}
 
+	//set the expires timestamp
+	if d.Get("ttl").(int) > 0 {
+		d.Set("expires", time.Now().Unix()+d.Get("ttl").(int64))
+	} else {
+		d.Set("expires", time.Now().Unix())
+	}
 	// force that it always sets for the newest json object by changing the id of the object
 	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
 	return diags
