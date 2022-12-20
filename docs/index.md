@@ -9,5 +9,6 @@ This provider support any service which is accessible via http or https.
 
 ```terraform
 provider "webrequest" {
+  timeout = 30
 }
 ```
