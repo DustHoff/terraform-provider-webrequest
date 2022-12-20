@@ -12,8 +12,9 @@ func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"timeout": &schema.Schema{
-				Type:    schema.TypeInt,
-				Default: 30,
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  30,
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{},
