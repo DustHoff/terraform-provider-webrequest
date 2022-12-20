@@ -5,14 +5,10 @@ import (
 	"testing"
 )
 
-var providerConfiguration map[string]*schema.Provider
 var testProvider *schema.Provider
 
 func init() {
 	testProvider = Provider()
-	providerConfiguration = map[string]*schema.Provider{
-		"hashicups": testProvider,
-	}
 }
 
 func TestProvider(t *testing.T) {
