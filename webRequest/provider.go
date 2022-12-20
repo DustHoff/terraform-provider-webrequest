@@ -17,7 +17,9 @@ func Provider() *schema.Provider {
 				Default:  30,
 			},
 		},
-		ResourcesMap: map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{
+			"webrequest_restcall": reource_restDataCall(),
+		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"webrequest_send": dataWebRequest(),
 		},
