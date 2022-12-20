@@ -2,10 +2,8 @@ package webRequest
 
 import (
 	"context"
-	"io/ioutil"
-	"net/http"
+	"curl-terraform-provider/client"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -74,7 +72,8 @@ func dataWebRequest() *schema.Resource {
 }
 
 func sendRequest(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := &http.Client{Timeout: 60 * time.Second}
+
+	client := m.(*client.Client)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -82,32 +81,17 @@ func sendRequest(ctx context.Context, d *schema.ResourceData, m interface{}) dia
 	if d.Get("expires").(int64) < time.Now().Unix() && d.Get("result") != nil {
 		return diags
 	}
-	req, err := http.NewRequest(d.Get("method").(string), d.Get("url").(string), strings.NewReader(d.Get("body").(string)))
 	headers := d.Get("header").([]interface{})
+	request := client.NewRequest().SetMethod(d.Get("method").(string)).SetURL(d.Get("url").(string))
 	for _, entry := range headers {
 		element := entry.(map[string]interface{})
-		req.Header.Set(element["name"].(string), element["value"].(string))
+		request.AddHeader(element["name"].(string), element["value"].(string))
 	}
-	if err != nil {
-		return diag.FromErr(err)
+	res := request.Do()
+	if res.StatusCode() != 200 {
+		return diags
 	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer res.Body.Close()
-
-	responseData, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	responseString := string(responseData)
-
-	//set the actual value we're going to return into, associated with the 'response' key name.
-	if err := d.Set("result", responseString); err != nil {
-		return diag.FromErr(err)
-	}
+	d.Set("result", res.Body())
 
 	//set the expires timestamp
 	if d.Get("ttl").(int) > 0 {
