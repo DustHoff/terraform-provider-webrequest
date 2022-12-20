@@ -18,7 +18,7 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"webrequest_restcall": reource_restDataCall(),
+			"webrequest_restcall": resourceRestDataCall(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"webrequest_send": dataWebRequest(),
