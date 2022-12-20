@@ -2,7 +2,6 @@ package client
 
 import (
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -26,7 +25,6 @@ func (c Client) do(req *http.Request) Response {
 	return NewResponse(*resp)
 }
 
-func (c Client) Send(method string, url string, body string) Response {
-	req, _ := http.NewRequest(method, url, strings.NewReader(body))
-	return c.do(req)
+func (c Client) NewRequest() *Request {
+	return NewRequestBuilder(c)
 }
