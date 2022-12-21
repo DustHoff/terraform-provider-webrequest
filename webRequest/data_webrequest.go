@@ -50,7 +50,6 @@ func dataWebRequest() *schema.Resource {
 			"header": &schema.Schema{
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				Description: "List of all Request Header",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{

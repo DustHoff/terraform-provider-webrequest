@@ -30,10 +30,10 @@ data "webrequest_send" "example" {
 ## Attributes Reference
 
 * `url` - (Required) target endpoint of the webservice, incl. scheme host port and resource path
-* method - (Optional) request method, default value is GET, Possible Values GET, POST, PUT, DELETE, OPTIONS, HEAD
-* body - (Optional) request body, default is a empty body
-* header - (Optional) a list of request header. Default is a empty list. See [Header](#Header) below for details
-* ttl  - (Optional) time to live of the received response. The Value represents the seconds of validity.
+* `method` - (Optional) request method, default value is GET, Possible Values GET, POST, PUT, DELETE, OPTIONS, HEAD
+* `body` - (Optional) request body, default is a empty body
+* `header` - (Optional) a list of request header. Default is a empty list. See [Header](#Header) below for details
+* `ttl`  - (Optional) time to live of the received response. The Value represents the seconds of validity.
 
 ### Header
 

@@ -38,14 +38,12 @@ func resourceRestDataCall() *schema.Resource {
 			},
 			"body": &schema.Schema{
 				Type:        schema.TypeString,
-				Default:     nil,
-				Optional:    true,
+				Required:    true,
 				Description: "Request Body for the request. please keep in mind to set the content-type header",
 			},
 			"header": &schema.Schema{
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				Description: "List of all Request Header",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
