@@ -16,7 +16,7 @@ func TestResourceRestDataCall(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: generateSimpleTerraformCall(),
+				Config: generateSimpleTerraformConfigRestDataCall(),
 				Check: resource.ComposeTestCheckFunc(
 					checkTerraformState("webrequest_restcall.call", t),
 				),
@@ -25,7 +25,7 @@ func TestResourceRestDataCall(t *testing.T) {
 	})
 }
 
-func generateSimpleTerraformCall() string {
+func generateSimpleTerraformConfigRestDataCall() string {
 	return fmt.Sprintf(`
 	resource "webrequest_restcall" "call" {
 		url = "https://eoscet74ykdzldt.m.pipedream.net"
