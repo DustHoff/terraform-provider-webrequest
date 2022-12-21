@@ -30,5 +30,5 @@ func Provider() *schema.Provider {
 func configureProvider(ctx context.Context, data *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	client := client2.NewClient(data.Get("timeout").(int))
-	return client, diags
+	return &client, diags
 }

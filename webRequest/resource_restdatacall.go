@@ -26,6 +26,11 @@ func resourceRestDataCall() *schema.Resource {
 				Default:     "id",
 				Description: "Primary key of the response object",
 			},
+			"objectid": &schema.Schema{
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Primary key of the response object",
+			},
 			"url": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
@@ -71,13 +76,14 @@ func createData(ctx context.Context, d *schema.ResourceData, m interface{}) diag
 		request.AddHeader(element["name"].(string), element["value"].(string))
 	}
 	response := request.Do()
-	if response.StatusCode() > 200 && response.StatusCode() < 199 {
+	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
 		d.Set("result", response.Body())
-		d.Set("id", response.BodyToJSON()[d.Get("key").(string)].(string))
+		d.Set("objectid", fmt.Sprint(response.BodyToJSON()[d.Get("key").(string)]))
+		d.SetId(fmt.Sprint(response.BodyToJSON()[d.Get("key").(string)]))
 	} else {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Unhealthy response code",
+			Summary:  "Failed to create data",
 			Detail:   "received response code " + fmt.Sprint(response.StatusCode()),
 		})
 	}
@@ -87,19 +93,19 @@ func createData(ctx context.Context, d *schema.ResourceData, m interface{}) diag
 func fetchData(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 	client := m.(*client.Client)
-	request := client.NewRequest().SetMethod("GET").SetURL(d.Get("url").(string) + "/" + d.Get("id").(string))
+	request := client.NewRequest().SetMethod("GET").SetURL(d.Get("url").(string) + "/" + d.Get("objectid").(string))
 	headers := d.Get("header").([]interface{})
 	for _, entry := range headers {
 		element := entry.(map[string]interface{})
 		request.AddHeader(element["name"].(string), element["value"].(string))
 	}
 	response := request.Do()
-	if response.StatusCode() > 200 && response.StatusCode() < 199 {
+	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
 		d.Set("result", response.Body())
 	} else {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Unhealthy response code",
+			Summary:  "Failed to fetch data",
 			Detail:   "received response code " + fmt.Sprint(response.StatusCode()),
 		})
 	}
@@ -109,20 +115,20 @@ func fetchData(ctx context.Context, d *schema.ResourceData, m interface{}) diag.
 func updateData(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 	client := m.(*client.Client)
-	request := client.NewRequest().SetMethod("PUT").SetURL(d.Get("url").(string) + "/" + d.Get("id").(string))
+	request := client.NewRequest().SetMethod("PUT").SetURL(d.Get("url").(string) + "/" + d.Get("objectid").(string))
 	headers := d.Get("header").([]interface{})
 	for _, entry := range headers {
 		element := entry.(map[string]interface{})
 		request.AddHeader(element["name"].(string), element["value"].(string))
 	}
 	response := request.Do()
-	if response.StatusCode() > 200 && response.StatusCode() < 199 {
+	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
 		d.Set("result", response.Body())
 		d.SetId(response.BodyToJSON()[d.Get("key").(string)].(string))
 	} else {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Unhealthy response code",
+			Summary:  "Failed to update data",
 			Detail:   "received response code " + fmt.Sprint(response.StatusCode()),
 		})
 	}
@@ -132,7 +138,7 @@ func updateData(ctx context.Context, d *schema.ResourceData, m interface{}) diag
 func deleteData(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 	client := m.(*client.Client)
-	request := client.NewRequest().SetMethod("DELETE").SetURL(d.Get("url").(string) + "/" + d.Get("id").(string))
+	request := client.NewRequest().SetMethod("DELETE").SetURL(d.Get("url").(string) + "/" + d.Get("objectid").(string))
 	headers := d.Get("header").([]interface{})
 	for _, entry := range headers {
 		element := entry.(map[string]interface{})
@@ -140,12 +146,12 @@ func deleteData(ctx context.Context, d *schema.ResourceData, m interface{}) diag
 	}
 	response := request.Do()
 
-	if response.StatusCode() > 200 && response.StatusCode() < 199 {
+	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
 		d.SetId("")
 	} else {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Unhealthy response code",
+			Summary:  "Failed to delete data",
 			Detail:   "received response code " + fmt.Sprint(response.StatusCode()),
 		})
 	}
