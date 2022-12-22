@@ -17,6 +17,10 @@ PUT    - scheme://host:port/users/1
 
 DELETE - scheme://host:port/users/1
 
+To use a rest api please only provide the base url to the service. any object specific url will be generated based on the 
+configuration. Default this resource assumes that the received JSON object contains a id field. This field is used to generated
+object specific urls.
+
 ## Example Usage
 
 ### Simple Example
@@ -37,6 +41,7 @@ data "webrequest_restcall" "example" {
       name = "Content-Type"
       value = "application/json"
     }]
+  key = "user_id"
 }
 ````
 
@@ -45,7 +50,7 @@ data "webrequest_restcall" "example" {
 * `url` - (Required) target endpoint of the webservice, incl. scheme host port and resource path
 * `body` - (Required) request body
 * `header` - (Optional) a list of request header. Default is a empty list. See [Header](#Header) below for details
-* `key` - (Optional) object field ob the received data
+* `key` - (Optional) primary key object field of the received data
 
 ### Header
 
@@ -55,4 +60,4 @@ data "webrequest_restcall" "example" {
 -> The following attributes are exported.
 
 - `result` contains the response body corresponding to the request
-- `objectid` a unix timestamp on which invalidate the response 
+- `objectid` the primary key value of the received object 
