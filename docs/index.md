@@ -15,6 +15,6 @@ provider "webrequest" {
 
 # disclaimer 
 
-I develop this terraform in my spare time. in any case you find a bug please report it on
+I develop this terraform provider in my spare time. in any case you find a bug please report it on
 github with detailed information. if you already find a solution please feel free to create a
 pull request.
