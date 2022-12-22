@@ -12,7 +12,7 @@ data "webrequest_send" "example" {
   
 }
 ```
-### Komplex Example
+### Complex Example
 ````terraform
 data "webrequest_send" "example" {
   url = "https://example.com/"

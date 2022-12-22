@@ -27,7 +27,7 @@ data "webrequest_restcall" "example" {
   
 }
 ```
-### Komplex Example
+### Complex Example
 ````terraform
 data "webrequest_restcall" "example" {
   url = "https://example.com/"
