@@ -3,6 +3,7 @@ package webRequest
 import (
 	"context"
 	"curl-terraform-provider/client"
+	"curl-terraform-provider/helper"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -52,16 +53,27 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 			},
 			"url": schema.StringAttribute{
 				Required: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"body": schema.StringAttribute{
 				Optional: true,
 			},
 			"key": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					helper.StringDefaultValue(types.StringValue("id")),
+				},
 			},
 			"header": schema.MapAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
+				PlanModifiers: []planmodifier.Map{
+					helper.EmptyMapDefaultValue(),
+				},
 			},
 		},
 	}

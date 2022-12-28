@@ -29,7 +29,6 @@ const simpleRestCall = `
 	resource "webrequest_restcall" "call" {
 		url = "https://eoscet74ykdzldt.m.pipedream.net"
 		body = jsonencode({"username":"test","email":"test@example.com"})
-		key = "id"
 	}
 	`
 
