@@ -3,102 +3,134 @@ package webRequest
 import (
 	"context"
 	"curl-terraform-provider/client"
+	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strconv"
 	"time"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataWebRequest() *schema.Resource {
-	return &schema.Resource{
-		ReadContext: sendRequest,
-		Schema: map[string]*schema.Schema{
-			"result": &schema.Schema{
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Response body of the requested resource",
+var _ datasource.DataSource = &WebRequestDataSource{}
+
+func NewWebRequestDataSource() datasource.DataSource {
+	return &WebRequestDataSource{}
+}
+
+type WebRequestDataSource struct {
+	client client.Client
+}
+type WebRequestDataSourceModel struct {
+	ID      types.String `tfsdk:"id"`
+	Result  types.String `tfsdk:"result"`
+	Expires types.Int64  `tfsdk:"expires"`
+	TTL     types.Int64  `tfsdk:"ttl"`
+	URL     types.String `tfsdk:"url"`
+	Body    types.String `tfsdk:"body"`
+	Method  types.String `tfsdk:"method"`
+	Header  types.Map    `tfsdk:"header"`
+}
+
+func (d *WebRequestDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_send"
+}
+
+func (d *WebRequestDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		// This description is used by the documentation generator and the language server.
+		MarkdownDescription: "Example data source",
+
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				MarkdownDescription: "Example identifier",
+				Computed:            true,
 			},
-			"expires": &schema.Schema{
-				Type:        schema.TypeFloat,
-				Computed:    true,
-				Description: "Unix Timestamp",
+			"result": schema.StringAttribute{
+				Computed: true,
 			},
-			"ttl": &schema.Schema{
-				Type:        schema.TypeInt,
+			"expires": schema.Int64Attribute{
+				Computed: true,
+			},
+			"ttl": schema.Int64Attribute{
+				Optional: true,
+			},
+			"url": schema.StringAttribute{
+				Required: true,
+			},
+			"body": schema.StringAttribute{
+				Optional: true,
+			},
+			"method": schema.StringAttribute{
+				Optional: true,
+			},
+			"header": schema.MapAttribute{
 				Optional:    true,
-				Default:     0,
-				Description: "time to live about the received response",
-			},
-			"url": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "URL of the target service. It includes schema, hostname, port and context path",
-			},
-			"body": &schema.Schema{
-				Type:        schema.TypeString,
-				Default:     nil,
-				Optional:    true,
-				Description: "Request Body for the request. please keep in mind to set the content-type header",
-			},
-			"method": &schema.Schema{
-				Type:        schema.TypeString,
-				Default:     "GET",
-				Optional:    true,
-				Description: "The request method.",
-			},
-			"header": &schema.Schema{
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "List of all Request Header",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Header name, like Content-Type",
-						},
-						"value": &schema.Schema{
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Header value",
-						},
-					},
-				},
+				ElementType: types.StringType,
 			},
 		},
 	}
 }
 
-func sendRequest(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-
-	client := m.(*client.Client)
-
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
-
-	if d.Get("expires").(int64) < time.Now().Unix() && d.Get("result") != nil {
-		return diags
+func (d *WebRequestDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
-	headers := d.Get("header").([]interface{})
-	request := client.NewRequest().SetMethod(d.Get("method").(string)).SetURL(d.Get("url").(string))
-	for _, entry := range headers {
-		element := entry.(map[string]interface{})
-		request.AddHeader(element["name"].(string), element["value"].(string))
+
+	client, ok := req.ProviderData.(client.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	d.client = client
+}
+
+func (d *WebRequestDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data WebRequestDataSourceModel
+	tflog.Info(ctx, "read DataModel")
+	// Read Terraform configuration data into the model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	tflog.Info(ctx, "check for errors")
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if (data.Expires.ValueInt64() < time.Now().Unix()) && (!data.Result.IsNull()) {
+		return
+	}
+	if data.URL.IsNull() || data.URL.IsUnknown() {
+		resp.Diagnostics.AddError("URL not set", "No URL has been defined")
+		return
+	}
+	request := d.client.NewRequest().SetMethod(data.Method.ValueString()).SetURL(data.URL.ValueString()).SetBody(data.Body.ValueString())
+
+	if !data.Header.IsUnknown() {
+		for key, value := range data.Header.Elements() {
+			request.AddHeader(key, value.String())
+		}
 	}
 	res := request.Do()
 	if res.StatusCode() != 200 {
-		return diags
+		resp.Diagnostics.AddError("Unhealthy Response Code "+fmt.Sprint(res.StatusCode()), res.Body())
 	}
-	d.Set("result", res.Body())
+	data.Result = types.StringValue(res.Body())
 
 	//set the expires timestamp
-	if d.Get("ttl").(int) > 0 {
-		d.Set("expires", time.Now().Unix()+d.Get("ttl").(int64))
+	if data.TTL.ValueInt64() > 0 {
+		data.Expires = types.Int64Value(time.Now().Unix() + data.TTL.ValueInt64())
 	} else {
-		d.Set("expires", time.Now().Unix())
+		data.Expires = types.Int64Value(time.Now().Unix())
 	}
 	// force that it always sets for the newest json object by changing the id of the object
-	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
-	return diags
+	data.ID = types.StringValue(strconv.FormatInt(time.Now().Unix(), 10))
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

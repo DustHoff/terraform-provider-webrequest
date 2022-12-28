@@ -4,154 +4,163 @@ import (
 	"context"
 	"curl-terraform-provider/client"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func resourceRestDataCall() *schema.Resource {
-	return &schema.Resource{
-		CreateContext: createData,
-		ReadContext:   fetchData,
-		UpdateContext: updateData,
-		DeleteContext: deleteData,
-		Schema: map[string]*schema.Schema{
-			"result": &schema.Schema{
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Response body of the requested resource",
-			},
-			"key": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "id",
-				Description: "Primary key of the response object",
-			},
-			"objectid": &schema.Schema{
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Primary key of the response object",
-			},
-			"url": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "URL of the target service. It includes schema, hostname, port and context path",
-			},
-			"body": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Request Body for the request. please keep in mind to set the content-type header",
-			},
-			"header": &schema.Schema{
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "List of all Request Header",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Header name, like Content-Type",
-						},
-						"value": &schema.Schema{
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Header value",
-						},
-					},
+var _ resource.Resource = &RestDataCall{}
+
+type RestDataCall struct {
+	client client.Client
+}
+
+type RestDataCallModel struct {
+	ID     types.String `tfsdk:"id"`
+	Key    types.String `tfsdk:"key"`
+	Result types.String `tfsdk:"result"`
+	URL    types.String `tfsdk:"url"`
+	Body   types.String `tfsdk:"body"`
+	Header types.Map    `tfsdk:"header"`
+}
+
+func NewRestDataCall() resource.Resource {
+	return &RestDataCall{}
+}
+
+func (r *RestDataCall) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_restcall"
+}
+
+func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		// This description is used by the documentation generator and the language server.
+		MarkdownDescription: "Example resource",
+
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "Example identifier",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
+			},
+			"result": schema.StringAttribute{
+				Computed: true,
+			},
+			"url": schema.StringAttribute{
+				Required: true,
+			},
+			"body": schema.StringAttribute{
+				Optional: true,
+			},
+			"key": schema.StringAttribute{
+				Optional: true,
+			},
+			"header": schema.MapAttribute{
+				Optional:    true,
+				ElementType: types.StringType,
 			},
 		},
 	}
 }
 
-func createData(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-	client := m.(*client.Client)
-	request := client.NewRequest().SetMethod("POST").SetURL(d.Get("url").(string)).SetBody(d.Get("body").(string))
-	headers := d.Get("header").([]interface{})
-	for _, entry := range headers {
-		element := entry.(map[string]interface{})
-		request.AddHeader(element["name"].(string), element["value"].(string))
+func (r *RestDataCall) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
-	response := request.Do()
-	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
-		d.Set("result", response.Body())
-		d.Set("objectid", fmt.Sprint(response.BodyToJSON()[d.Get("key").(string)]))
-		d.SetId(fmt.Sprint(response.BodyToJSON()[d.Get("key").(string)]))
-	} else {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to create data",
-			Detail:   "received response code " + fmt.Sprint(response.StatusCode()),
-		})
+
+	client, ok := req.ProviderData.(client.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
 	}
-	return diags
+
+	r.client = client
 }
 
-func fetchData(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-	client := m.(*client.Client)
-	request := client.NewRequest().SetMethod("GET").SetURL(d.Get("url").(string) + "/" + d.Get("objectid").(string))
-	headers := d.Get("header").([]interface{})
-	for _, entry := range headers {
-		element := entry.(map[string]interface{})
-		request.AddHeader(element["name"].(string), element["value"].(string))
+func (r *RestDataCall) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data RestDataCallModel
+
+	// Read Terraform configuration data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	request := r.client.NewRequest().SetMethod("POST").SetURL(data.URL.ValueString()).SetBody(data.Body.ValueString())
+	if !data.Header.IsUnknown() {
+		for key, value := range data.Header.Elements() {
+			request.AddHeader(key, value.String())
+		}
 	}
 	response := request.Do()
 	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
-		d.Set("result", response.Body())
+		data.Result = types.StringValue(response.Body())
+		data.ID = types.StringValue(fmt.Sprint(response.BodyToJSON()[data.Key.ValueString()]))
 	} else {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to fetch data",
-			Detail:   "received response code " + fmt.Sprint(response.StatusCode()),
-		})
+		resp.Diagnostics.AddError("Failed to create data", "received response code "+fmt.Sprint(response.StatusCode()))
 	}
-	return diags
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func updateData(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-	client := m.(*client.Client)
-	request := client.NewRequest().SetMethod("PUT").SetURL(d.Get("url").(string) + "/" + d.Get("objectid").(string))
-	headers := d.Get("header").([]interface{})
-	for _, entry := range headers {
-		element := entry.(map[string]interface{})
-		request.AddHeader(element["name"].(string), element["value"].(string))
+func (r *RestDataCall) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data RestDataCallModel
+
+	// Read Terraform configuration data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	request := r.client.NewRequest().SetMethod("GET").SetURL(data.URL.ValueString() + "/" + data.ID.ValueString())
+	for key, value := range data.Header.Elements() {
+		request.AddHeader(key, value.String())
 	}
 	response := request.Do()
 	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
-		d.Set("result", response.Body())
-		d.SetId(response.BodyToJSON()[d.Get("key").(string)].(string))
+		data.Result = types.StringValue(response.Body())
 	} else {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to update data",
-			Detail:   "received response code " + fmt.Sprint(response.StatusCode()),
-		})
+		resp.Diagnostics.AddError("Failed to fetch data", "received response code "+fmt.Sprint(response.StatusCode()))
 	}
-	return diags
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func deleteData(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-	client := m.(*client.Client)
-	request := client.NewRequest().SetMethod("DELETE").SetURL(d.Get("url").(string) + "/" + d.Get("objectid").(string))
-	headers := d.Get("header").([]interface{})
-	for _, entry := range headers {
-		element := entry.(map[string]interface{})
-		request.AddHeader(element["name"].(string), element["value"].(string))
+func (r *RestDataCall) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data RestDataCallModel
+
+	// Read Terraform configuration data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	request := r.client.NewRequest().SetMethod("PUT").SetURL(data.URL.ValueString() + "/" + data.ID.ValueString())
+	for key, value := range data.Header.Elements() {
+		request.AddHeader(key, value.String())
 	}
 	response := request.Do()
-
 	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
-		d.SetId("")
+		data.Result = types.StringValue(response.Body())
 	} else {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to delete data",
-			Detail:   "received response code " + fmt.Sprint(response.StatusCode()),
-		})
+		resp.Diagnostics.AddError("Failed to update data", "received response code "+fmt.Sprint(response.StatusCode()))
 	}
-	return diags
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *RestDataCall) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data RestDataCallModel
+
+	// Read Terraform configuration data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	request := r.client.NewRequest().SetMethod("DELETE").SetURL(data.URL.ValueString() + "/" + data.ID.ValueString())
+	for key, value := range data.Header.Elements() {
+		request.AddHeader(key, value.String())
+	}
+	response := request.Do()
+	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
+		data.Result = types.StringValue(response.Body())
+	} else {
+		resp.Diagnostics.AddError("Failed to fetch data", "received response code "+fmt.Sprint(response.StatusCode()))
+	}
 }

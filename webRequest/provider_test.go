@@ -1,18 +1,15 @@
 package webRequest
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"testing"
 )
 
-var testProvider *schema.Provider
-
-func init() {
-	testProvider = Provider()
+var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+	"webrequest": providerserver.NewProtocol6WithError(NewProvider("test")()),
 }
 
-func TestProvider(t *testing.T) {
-	if err := testProvider.InternalValidate(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+func testAccPreCheck(t *testing.T) {
+	testAccProtoV6ProviderFactories["webrequest"]()
 }

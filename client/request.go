@@ -38,9 +38,12 @@ func (r *Request) SetBody(body string) *Request {
 	return r
 }
 func (r *Request) Do() Response {
-	request, _ := http.NewRequest(r.method, r.url, strings.NewReader(r.body))
+	request, err := http.NewRequest(r.method, r.url, strings.NewReader(r.body))
 	for key, value := range r.header {
 		request.Header.Set(key, value)
+	}
+	if err != nil {
+		return NewCustomResponse(444, err.Error())
 	}
 	return r.client.do(request)
 }
