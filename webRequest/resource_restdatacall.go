@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var _ resource.Resource = &RestDataCall{}
@@ -106,10 +107,10 @@ func (r *RestDataCall) Create(ctx context.Context, req resource.CreateRequest, r
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
 	request := r.client.NewRequest().SetMethod("POST").SetURL(data.URL.ValueString()).SetBody(data.Body.ValueString())
-	if !data.Header.IsUnknown() {
-		for key, value := range data.Header.Elements() {
-			request.AddHeader(key, value.String())
-		}
+	tflog.Debug(ctx, "Header Count "+fmt.Sprint(len(data.Header.Elements())))
+	for key, value := range data.Header.Elements() {
+		tflog.Debug(ctx, "Adding Header "+key+"="+value.(types.String).ValueString())
+		request.AddHeader(key, value.(types.String).ValueString())
 	}
 	response := request.Do()
 	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
@@ -128,8 +129,10 @@ func (r *RestDataCall) Read(ctx context.Context, req resource.ReadRequest, resp 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	request := r.client.NewRequest().SetMethod("GET").SetURL(data.URL.ValueString() + "/" + data.ID.ValueString())
+	tflog.Debug(ctx, "Header Count "+fmt.Sprint(len(data.Header.Elements())))
 	for key, value := range data.Header.Elements() {
-		request.AddHeader(key, value.String())
+		tflog.Debug(ctx, "Adding Header "+key+"="+value.(types.String).ValueString())
+		request.AddHeader(key, value.(types.String).ValueString())
 	}
 	response := request.Do()
 	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
@@ -147,8 +150,10 @@ func (r *RestDataCall) Update(ctx context.Context, req resource.UpdateRequest, r
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
 	request := r.client.NewRequest().SetMethod("PUT").SetURL(data.URL.ValueString() + "/" + data.ID.ValueString())
+	tflog.Debug(ctx, "Header Count "+fmt.Sprint(len(data.Header.Elements())))
 	for key, value := range data.Header.Elements() {
-		request.AddHeader(key, value.String())
+		tflog.Debug(ctx, "Adding Header "+key+"="+value.(types.String).ValueString())
+		request.AddHeader(key, value.(types.String).ValueString())
 	}
 	response := request.Do()
 	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
@@ -166,8 +171,10 @@ func (r *RestDataCall) Delete(ctx context.Context, req resource.DeleteRequest, r
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	request := r.client.NewRequest().SetMethod("DELETE").SetURL(data.URL.ValueString() + "/" + data.ID.ValueString())
+	tflog.Debug(ctx, "Header Count "+fmt.Sprint(len(data.Header.Elements())))
 	for key, value := range data.Header.Elements() {
-		request.AddHeader(key, value.String())
+		tflog.Debug(ctx, "Adding Header "+key+"="+value.(types.String).ValueString())
+		request.AddHeader(key, value.(types.String).ValueString())
 	}
 	response := request.Do()
 	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {

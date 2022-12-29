@@ -112,11 +112,12 @@ func (d *WebRequestDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 	request := d.client.NewRequest().SetMethod(data.Method.ValueString()).SetURL(data.URL.ValueString()).SetBody(data.Body.ValueString())
 
-	if !data.Header.IsUnknown() {
-		for key, value := range data.Header.Elements() {
-			request.AddHeader(key, value.String())
-		}
+	tflog.Debug(ctx, "Header Count "+fmt.Sprint(len(data.Header.Elements())))
+	for key, value := range data.Header.Elements() {
+		tflog.Debug(ctx, "Adding Header "+key+"="+value.(types.String).ValueString())
+		request.AddHeader(key, value.(types.String).ValueString())
 	}
+
 	res := request.Do()
 	if res.StatusCode() != 200 {
 		resp.Diagnostics.AddError("Unhealthy Response Code "+fmt.Sprint(res.StatusCode()), res.Body())

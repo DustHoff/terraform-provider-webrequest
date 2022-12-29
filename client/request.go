@@ -16,6 +16,7 @@ type Request struct {
 func NewRequestBuilder(client Client) *Request {
 	return &Request{
 		client: client,
+		header: map[string]string{},
 	}
 }
 
