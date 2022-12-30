@@ -5,11 +5,13 @@ import (
 	"curl-terraform-provider/client"
 	"curl-terraform-provider/helper"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -26,10 +28,29 @@ type RestDataCallModel struct {
 	URL    types.String `tfsdk:"url"`
 	Body   types.String `tfsdk:"body"`
 	Header types.Map    `tfsdk:"header"`
+	Create types.Object `tfsdk:"create"`
+	Read   types.Object `tfsdk:"read"`
+	Update types.Object `tfsdk:"update"`
+	Delete types.Object `tfsdk:"delete"`
+}
+
+type CustomAPICall struct {
+	Method types.String `tfsdk:"method"`
+	URL    types.String `tfsdk:"url"`
 }
 
 func NewRestDataCall() resource.Resource {
 	return &RestDataCall{}
+}
+
+func (r *RestDataCall) sendRequest(ctx context.Context, data RestDataCallModel, custom CustomAPICall) client.Response {
+	request := r.client.NewRequest().SetMethod(custom.Method.ValueString()).SetURL(custom.URL.ValueString()).SetBody(data.Body.ValueString())
+	tflog.Debug(ctx, "Header Count "+fmt.Sprint(len(data.Header.Elements())))
+	for key, value := range data.Header.Elements() {
+		tflog.Debug(ctx, "Adding Header "+key+"="+value.(types.String).ValueString())
+		request.AddHeader(key, value.(types.String).ValueString())
+	}
+	return request.Do()
 }
 
 func (r *RestDataCall) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -76,6 +97,34 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 					helper.EmptyMapDefaultValue(),
 				},
 			},
+			"create": schema.ObjectAttribute{
+				Optional: true,
+				AttributeTypes: map[string]attr.Type{
+					"method": types.StringType,
+					"url":    types.StringType,
+				},
+			},
+			"read": schema.ObjectAttribute{
+				Optional: true,
+				AttributeTypes: map[string]attr.Type{
+					"method": types.StringType,
+					"url":    types.StringType,
+				},
+			},
+			"update": schema.ObjectAttribute{
+				Optional: true,
+				AttributeTypes: map[string]attr.Type{
+					"method": types.StringType,
+					"url":    types.StringType,
+				},
+			},
+			"delete": schema.ObjectAttribute{
+				Optional: true,
+				AttributeTypes: map[string]attr.Type{
+					"method": types.StringType,
+					"url":    types.StringType,
+				},
+			},
 		},
 	}
 }
@@ -102,17 +151,26 @@ func (r *RestDataCall) Configure(ctx context.Context, req resource.ConfigureRequ
 
 func (r *RestDataCall) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data RestDataCallModel
+	var custom CustomAPICall
 
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
-	request := r.client.NewRequest().SetMethod("POST").SetURL(data.URL.ValueString()).SetBody(data.Body.ValueString())
-	tflog.Debug(ctx, "Header Count "+fmt.Sprint(len(data.Header.Elements())))
-	for key, value := range data.Header.Elements() {
-		tflog.Debug(ctx, "Adding Header "+key+"="+value.(types.String).ValueString())
-		request.AddHeader(key, value.(types.String).ValueString())
+	customDiag := data.Create.As(ctx, &custom, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: false,
+	})
+
+	if customDiag != nil {
+		resp.Diagnostics.Append(customDiag...)
 	}
-	response := request.Do()
+	if custom.Method.IsNull() {
+		custom.Method = types.StringValue("POST")
+	}
+	if custom.URL.IsNull() {
+		custom.URL = data.URL
+	}
+	response := r.sendRequest(ctx, data, custom)
 	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
 		data.Result = types.StringValue(response.Body())
 		data.ID = types.StringValue(fmt.Sprint(response.BodyToJSON()[data.Key.ValueString()]))
@@ -124,17 +182,25 @@ func (r *RestDataCall) Create(ctx context.Context, req resource.CreateRequest, r
 
 func (r *RestDataCall) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data RestDataCallModel
+	var custom CustomAPICall
 
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	customDiag := data.Read.As(ctx, &custom, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: false,
+	})
 
-	request := r.client.NewRequest().SetMethod("GET").SetURL(data.URL.ValueString() + "/" + data.ID.ValueString())
-	tflog.Debug(ctx, "Header Count "+fmt.Sprint(len(data.Header.Elements())))
-	for key, value := range data.Header.Elements() {
-		tflog.Debug(ctx, "Adding Header "+key+"="+value.(types.String).ValueString())
-		request.AddHeader(key, value.(types.String).ValueString())
+	if customDiag != nil {
+		resp.Diagnostics.Append(customDiag...)
 	}
-	response := request.Do()
+	if custom.Method.IsNull() {
+		custom.Method = types.StringValue("GET")
+	}
+	if custom.URL.IsNull() {
+		custom.URL = types.StringValue(data.URL.ValueString() + "/" + data.ID.ValueString())
+	}
+	response := r.sendRequest(ctx, data, custom)
 	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
 		data.Result = types.StringValue(response.Body())
 	} else {
@@ -145,17 +211,26 @@ func (r *RestDataCall) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 func (r *RestDataCall) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data RestDataCallModel
+	var custom CustomAPICall
 
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
-	request := r.client.NewRequest().SetMethod("PUT").SetURL(data.URL.ValueString() + "/" + data.ID.ValueString())
-	tflog.Debug(ctx, "Header Count "+fmt.Sprint(len(data.Header.Elements())))
-	for key, value := range data.Header.Elements() {
-		tflog.Debug(ctx, "Adding Header "+key+"="+value.(types.String).ValueString())
-		request.AddHeader(key, value.(types.String).ValueString())
+	customDiag := data.Update.As(ctx, &custom, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: false,
+	})
+
+	if customDiag != nil {
+		resp.Diagnostics.Append(customDiag...)
 	}
-	response := request.Do()
+	if custom.Method.IsNull() {
+		custom.Method = types.StringValue("PUT")
+	}
+	if custom.URL.IsNull() {
+		custom.URL = types.StringValue(data.URL.ValueString() + "/" + data.ID.ValueString())
+	}
+	response := r.sendRequest(ctx, data, custom)
 	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
 		data.Result = types.StringValue(response.Body())
 	} else {
@@ -166,17 +241,26 @@ func (r *RestDataCall) Update(ctx context.Context, req resource.UpdateRequest, r
 
 func (r *RestDataCall) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var data RestDataCallModel
+	var custom CustomAPICall
 
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
-	request := r.client.NewRequest().SetMethod("DELETE").SetURL(data.URL.ValueString() + "/" + data.ID.ValueString())
-	tflog.Debug(ctx, "Header Count "+fmt.Sprint(len(data.Header.Elements())))
-	for key, value := range data.Header.Elements() {
-		tflog.Debug(ctx, "Adding Header "+key+"="+value.(types.String).ValueString())
-		request.AddHeader(key, value.(types.String).ValueString())
+	customDiag := data.Delete.As(ctx, &custom, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: false,
+	})
+
+	if customDiag != nil {
+		resp.Diagnostics.Append(customDiag...)
 	}
-	response := request.Do()
+	if custom.Method.IsNull() {
+		custom.Method = types.StringValue("DELETE")
+	}
+	if custom.URL.IsNull() {
+		custom.URL = types.StringValue(data.URL.ValueString() + "/" + data.ID.ValueString())
+	}
+	response := r.sendRequest(ctx, data, custom)
 	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
 		data.Result = types.StringValue(response.Body())
 	} else {

@@ -56,5 +56,25 @@ resource "webrequest_restcall" "call" {
 		Content-Type = "application/json"
 		Accept = "application/json"
 	}
+
+	create = {
+		method = "POST"
+		url = "https://eoscet74ykdzldt.m.pipedream.net/create"
+	}
+
+	read = {
+		method = "POST"
+		url = "https://eoscet74ykdzldt.m.pipedream.net/get"
+	}
+
+	update = {
+		method = "POST"
+		url = "https://eoscet74ykdzldt.m.pipedream.net/update"
+	}
+
+	delete = {
+		method = "POST"
+		url = "https://eoscet74ykdzldt.m.pipedream.net/delete"
+	}
 }
 `
