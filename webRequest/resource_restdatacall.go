@@ -79,7 +79,7 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 				Computed: true,
 			},
 			"ignorestatuscode": schema.BoolAttribute{
-				Optional: true,
+				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
 					modifier.BooleanDefaultValueModifier(types.BoolValue(false)),
 				},
@@ -249,6 +249,7 @@ func (r *RestDataCall) Update(ctx context.Context, req resource.UpdateRequest, r
 		custom.URL = types.StringValue(data.URL.ValueString() + "/" + data.ID.ValueString())
 	}
 	response := r.sendRequest(ctx, data, custom)
+	data.StatusCode = types.Int64Value(int64(response.StatusCode()))
 	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
 		data.Result = types.StringValue(response.Body())
 	} else {
