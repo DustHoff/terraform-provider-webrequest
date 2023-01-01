@@ -3,7 +3,7 @@ package webRequest
 import (
 	"context"
 	"curl-terraform-provider/client"
-	"curl-terraform-provider/helper"
+	"curl-terraform-provider/helper/modifier"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -22,16 +22,18 @@ type RestDataCall struct {
 }
 
 type RestDataCallModel struct {
-	ID     types.String `tfsdk:"id"`
-	Key    types.String `tfsdk:"key"`
-	Result types.String `tfsdk:"result"`
-	URL    types.String `tfsdk:"url"`
-	Body   types.String `tfsdk:"body"`
-	Header types.Map    `tfsdk:"header"`
-	Create types.Object `tfsdk:"create"`
-	Read   types.Object `tfsdk:"read"`
-	Update types.Object `tfsdk:"update"`
-	Delete types.Object `tfsdk:"delete"`
+	ID               types.String `tfsdk:"id"`
+	Key              types.String `tfsdk:"key"`
+	Result           types.String `tfsdk:"result"`
+	StatusCode       types.Int64  `tfsdk:"statuscode"`
+	URL              types.String `tfsdk:"url"`
+	Body             types.String `tfsdk:"body"`
+	IgnoreStatusCode types.Bool   `tfsdk:"ignorestatuscode"`
+	Header           types.Map    `tfsdk:"header"`
+	Create           types.Object `tfsdk:"create"`
+	Read             types.Object `tfsdk:"read"`
+	Update           types.Object `tfsdk:"update"`
+	Delete           types.Object `tfsdk:"delete"`
 }
 
 type CustomAPICall struct {
@@ -73,6 +75,15 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"result": schema.StringAttribute{
 				Computed: true,
 			},
+			"statuscode": schema.Int64Attribute{
+				Computed: true,
+			},
+			"ignorestatuscode": schema.BoolAttribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.Bool{
+					modifier.BooleanDefaultValueModifier(types.BoolValue(false)),
+				},
+			},
 			"url": schema.StringAttribute{
 				Required: true,
 				PlanModifiers: []planmodifier.String{
@@ -86,7 +97,7 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					helper.StringDefaultValue(types.StringValue("id")),
+					modifier.StringDefaultValue(types.StringValue("id")),
 				},
 			},
 			"header": schema.MapAttribute{
@@ -94,35 +105,50 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 				Computed:    true,
 				ElementType: types.StringType,
 				PlanModifiers: []planmodifier.Map{
-					helper.EmptyMapDefaultValue(),
+					modifier.EmptyMapDefaultValue(),
 				},
 			},
 			"create": schema.ObjectAttribute{
 				Optional: true,
+				Computed: true,
 				AttributeTypes: map[string]attr.Type{
 					"method": types.StringType,
 					"url":    types.StringType,
+				},
+				PlanModifiers: []planmodifier.Object{
+					modifier.CustomCallDefaultValueModifier("POST"),
 				},
 			},
 			"read": schema.ObjectAttribute{
 				Optional: true,
+				Computed: true,
 				AttributeTypes: map[string]attr.Type{
 					"method": types.StringType,
 					"url":    types.StringType,
+				},
+				PlanModifiers: []planmodifier.Object{
+					modifier.CustomCallDefaultValueModifier("GET"),
 				},
 			},
 			"update": schema.ObjectAttribute{
 				Optional: true,
+				Computed: true,
 				AttributeTypes: map[string]attr.Type{
 					"method": types.StringType,
 					"url":    types.StringType,
+				}, PlanModifiers: []planmodifier.Object{
+					modifier.CustomCallDefaultValueModifier("PUT"),
 				},
 			},
 			"delete": schema.ObjectAttribute{
 				Optional: true,
+				Computed: true,
 				AttributeTypes: map[string]attr.Type{
 					"method": types.StringType,
 					"url":    types.StringType,
+				},
+				PlanModifiers: []planmodifier.Object{
+					modifier.CustomCallDefaultValueModifier("DELETE"),
 				},
 			},
 		},
@@ -164,14 +190,12 @@ func (r *RestDataCall) Create(ctx context.Context, req resource.CreateRequest, r
 	if customDiag != nil {
 		resp.Diagnostics.Append(customDiag...)
 	}
-	if custom.Method.IsNull() {
-		custom.Method = types.StringValue("POST")
-	}
 	if custom.URL.IsNull() {
 		custom.URL = data.URL
 	}
 	response := r.sendRequest(ctx, data, custom)
-	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
+	data.StatusCode = types.Int64Value(int64(response.StatusCode()))
+	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
 		data.Result = types.StringValue(response.Body())
 		data.ID = types.StringValue(fmt.Sprint(response.BodyToJSON()[data.Key.ValueString()]))
 	} else {
@@ -194,14 +218,11 @@ func (r *RestDataCall) Read(ctx context.Context, req resource.ReadRequest, resp 
 	if customDiag != nil {
 		resp.Diagnostics.Append(customDiag...)
 	}
-	if custom.Method.IsNull() {
-		custom.Method = types.StringValue("GET")
-	}
 	if custom.URL.IsNull() {
 		custom.URL = types.StringValue(data.URL.ValueString() + "/" + data.ID.ValueString())
 	}
 	response := r.sendRequest(ctx, data, custom)
-	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
+	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
 		data.Result = types.StringValue(response.Body())
 	} else {
 		resp.Diagnostics.AddError("Failed to fetch data", "received response code "+fmt.Sprint(response.StatusCode()))
@@ -224,14 +245,11 @@ func (r *RestDataCall) Update(ctx context.Context, req resource.UpdateRequest, r
 	if customDiag != nil {
 		resp.Diagnostics.Append(customDiag...)
 	}
-	if custom.Method.IsNull() {
-		custom.Method = types.StringValue("PUT")
-	}
 	if custom.URL.IsNull() {
 		custom.URL = types.StringValue(data.URL.ValueString() + "/" + data.ID.ValueString())
 	}
 	response := r.sendRequest(ctx, data, custom)
-	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
+	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
 		data.Result = types.StringValue(response.Body())
 	} else {
 		resp.Diagnostics.AddError("Failed to update data", "received response code "+fmt.Sprint(response.StatusCode()))
@@ -261,7 +279,7 @@ func (r *RestDataCall) Delete(ctx context.Context, req resource.DeleteRequest, r
 		custom.URL = types.StringValue(data.URL.ValueString() + "/" + data.ID.ValueString())
 	}
 	response := r.sendRequest(ctx, data, custom)
-	if (response.StatusCode() >= 200) && (response.StatusCode() < 299) {
+	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
 		data.Result = types.StringValue(response.Body())
 	} else {
 		resp.Diagnostics.AddError("Failed to fetch data", "received response code "+fmt.Sprint(response.StatusCode()))
