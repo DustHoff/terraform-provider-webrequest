@@ -1,4 +1,4 @@
-package helper
+package modifier
 
 import (
 	"context"
@@ -13,8 +13,6 @@ func Int64DefaultValue(v types.Int64) planmodifier.Int64 {
 type int64DefaultValuePlanModifier struct {
 	DefaultValue types.Int64
 }
-
-var _ planmodifier.Int64 = (*int64DefaultValuePlanModifier)(nil)
 
 func (apm *int64DefaultValuePlanModifier) Description(ctx context.Context) string {
 	return ""
