@@ -4,8 +4,10 @@ import (
 	"context"
 	"curl-terraform-provider/client"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strconv"
@@ -63,6 +65,9 @@ func (d *WebRequestDataSource) Schema(ctx context.Context, req datasource.Schema
 			},
 			"method": schema.StringAttribute{
 				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.OneOfCaseInsensitive("GET", "POST", "PUT", "DELETE", "OPTION", "HEAD"),
+				},
 			},
 			"header": schema.MapAttribute{
 				Optional:    true,
