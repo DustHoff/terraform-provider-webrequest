@@ -41,37 +41,44 @@ func (d *WebRequestDataSource) Metadata(ctx context.Context, req datasource.Meta
 func (d *WebRequestDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Example data source",
+		MarkdownDescription: "send any http request to a endpoint",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Example identifier",
+				MarkdownDescription: "data source identifier",
 				Computed:            true,
 			},
 			"result": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				MarkdownDescription: "received response data as string",
 			},
 			"expires": schema.Int64Attribute{
-				Computed: true,
+				Computed:            true,
+				MarkdownDescription: "timestamp when the received response invalidates. value is in milliseconds since 1970",
 			},
 			"ttl": schema.Int64Attribute{
-				Optional: true,
+				Optional:            true,
+				MarkdownDescription: "time to live of the received response. value is in seconds",
 			},
 			"url": schema.StringAttribute{
-				Required: true,
+				Required:            true,
+				MarkdownDescription: "request url",
 			},
 			"body": schema.StringAttribute{
-				Optional: true,
+				Optional:            true,
+				MarkdownDescription: "request body",
 			},
 			"method": schema.StringAttribute{
-				Optional: true,
+				Optional:            true,
+				MarkdownDescription: "request method",
 				Validators: []validator.String{
 					stringvalidator.OneOfCaseInsensitive("GET", "POST", "PUT", "DELETE", "OPTION", "HEAD"),
 				},
 			},
 			"header": schema.MapAttribute{
-				Optional:    true,
-				ElementType: types.StringType,
+				Optional:            true,
+				MarkdownDescription: "map of request header",
+				ElementType:         types.StringType,
 			},
 		},
 	}

@@ -62,55 +62,66 @@ func (r *RestDataCall) Metadata(ctx context.Context, req resource.MetadataReques
 func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Example resource",
+		MarkdownDescription: "This resource interact with any rest like endpoint. All CRUD types are handled during lifetime of" +
+			"this resource. fresh resource generate a create request, refreshing resource state result in a read action," +
+			"updating a attribute perform after apply a update action (partial update isn't supported) and finally deleting the resource performs a delete request" +
+			"the primary key ob the resulting object is append to the url",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Example identifier",
+				MarkdownDescription: "received object identifier",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"result": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				MarkdownDescription: "received JSON object as string representation",
 			},
 			"statuscode": schema.Int64Attribute{
-				Computed: true,
+				Computed:            true,
+				MarkdownDescription: "received http statuscode",
 			},
 			"ignorestatuscode": schema.BoolAttribute{
-				Computed: true,
+				Computed:            true,
+				MarkdownDescription: "ignores the statuscode on response validation",
 				PlanModifiers: []planmodifier.Bool{
 					modifier.BooleanDefaultValueModifier(types.BoolValue(false)),
 				},
 			},
 			"url": schema.StringAttribute{
-				Required: true,
+				Required:            true,
+				MarkdownDescription: "request url",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"body": schema.StringAttribute{
-				Optional: true,
+				Optional:            true,
+				MarkdownDescription: "request body",
 			},
 			"key": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "primary key of the received object, to generate/manipulate the request url",
 				PlanModifiers: []planmodifier.String{
 					modifier.StringDefaultValue(types.StringValue("id")),
 				},
 			},
 			"header": schema.MapAttribute{
-				Optional:    true,
-				Computed:    true,
-				ElementType: types.StringType,
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "map of request header",
+				ElementType:         types.StringType,
 				PlanModifiers: []planmodifier.Map{
 					modifier.EmptyMapDefaultValue(),
 				},
 			},
 			"create": schema.ObjectAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "manipulate the behavior for object creation",
 				AttributeTypes: map[string]attr.Type{
 					"method": types.StringType,
 					"url":    types.StringType,
@@ -120,8 +131,9 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 				},
 			},
 			"read": schema.ObjectAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "manipulate the behavior for reading the object",
 				AttributeTypes: map[string]attr.Type{
 					"method": types.StringType,
 					"url":    types.StringType,
@@ -131,8 +143,9 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 				},
 			},
 			"update": schema.ObjectAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "manipulate the behavior for updating the object",
 				AttributeTypes: map[string]attr.Type{
 					"method": types.StringType,
 					"url":    types.StringType,
@@ -141,8 +154,9 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 				},
 			},
 			"delete": schema.ObjectAttribute{
-				Optional: true,
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "manipulate the behavior for deleting the object",
 				AttributeTypes: map[string]attr.Type{
 					"method": types.StringType,
 					"url":    types.StringType,

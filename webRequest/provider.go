@@ -36,9 +36,12 @@ func (p *WebRequestProvider) Metadata(ctx context.Context, req provider.Metadata
 
 func (p *WebRequestProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "This provider can interact with any rest compatible endpoints. It work like the command line tool" +
+			"_curl_",
 		Attributes: map[string]schema.Attribute{
 			"timeout": schema.Int64Attribute{
-				Optional: true,
+				Optional:            true,
+				MarkdownDescription: "Request Timeout",
 			},
 		},
 	}
@@ -65,7 +68,6 @@ func (p *WebRequestProvider) DataSources(ctx context.Context) []func() datasourc
 	}
 }
 
-// Resources satisfies the provider.Provider interface for ExampleCloudProvider.
 func (p *WebRequestProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewRestDataCall,
