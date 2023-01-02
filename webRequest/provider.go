@@ -32,11 +32,12 @@ func NewProvider(version string) func() provider.Provider {
 }
 func (p *WebRequestProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "webrequest"
+	resp.Version = p.version
 }
 
 func (p *WebRequestProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "This provider can interact with any rest compatible endpoints. It work like the command line tool" +
+		MarkdownDescription: "This provider can interact with any rest compatible endpoints. It work like the command line tool " +
 			"_curl_",
 		Attributes: map[string]schema.Attribute{
 			"timeout": schema.Int64Attribute{

@@ -12,13 +12,12 @@ import (
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name webrequest
 var (
 	// Example version string that can be overwritten by a release process
-	version string = "dev"
+	version string = "1.0.0"
 )
 
 func main() {
 	opts := providerserver.ServeOpts{
-		// TODO: Update this string with the published name of your provider.
-		Address: "registry.terraform.io/example-namespace/example",
+		Address: "registry.terraform.io/providers/DustHoff/webrequest",
 	}
 
 	err := providerserver.Serve(context.Background(), webRequest.NewProvider(version), opts)

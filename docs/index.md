@@ -3,12 +3,12 @@
 page_title: "webrequest Provider"
 subcategory: ""
 description: |-
-  This provider can interact with any rest compatible endpoints. It work like the command line toolcurl
+  This provider can interact with any rest compatible endpoints. It work like the command line tool curl
 ---
 
 # webrequest Provider
 
-This provider can interact with any rest compatible endpoints. It work like the command line tool_curl_
+This provider can interact with any rest compatible endpoints. It work like the command line tool _curl_
 
 ## Example Usage
 
