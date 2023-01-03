@@ -84,6 +84,7 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 				MarkdownDescription: "received http statuscode",
 			},
 			"ignorestatuscode": schema.BoolAttribute{
+				Optional:            true,
 				Computed:            true,
 				MarkdownDescription: "ignores the statuscode on response validation",
 				PlanModifiers: []planmodifier.Bool{

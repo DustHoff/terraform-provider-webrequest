@@ -51,6 +51,7 @@ resource "webrequest_restcall" "call" {
 const complexRestCall = `
 resource "webrequest_restcall" "call" {
 	url = "https://eoscet74ykdzldt.m.pipedream.net"
+	ignorestatuscode = true
 	body = jsonencode({"username":"test","email":"test@example.com"})
 	header = {
 		Content-Type = "application/json"

@@ -64,6 +64,7 @@ resource "webrequest_restcall" "call" {
 - `create` (Object) manipulate the behavior for object creation (see [below for nested schema](#nestedatt--create))
 - `delete` (Object) manipulate the behavior for deleting the object (see [below for nested schema](#nestedatt--delete))
 - `header` (Map of String) map of request header
+- `ignorestatuscode` (Boolean) ignores the statuscode on response validation
 - `key` (String) primary key of the received object, to generate/manipulate the request url
 - `read` (Object) manipulate the behavior for reading the object (see [below for nested schema](#nestedatt--read))
 - `update` (Object) manipulate the behavior for updating the object (see [below for nested schema](#nestedatt--update))
@@ -71,7 +72,6 @@ resource "webrequest_restcall" "call" {
 ### Read-Only
 
 - `id` (String) received object identifier
-- `ignorestatuscode` (Boolean) ignores the statuscode on response validation
 - `result` (String) received JSON object as string representation
 - `statuscode` (Number) received http statuscode
 

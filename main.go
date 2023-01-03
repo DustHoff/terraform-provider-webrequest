@@ -17,7 +17,7 @@ var (
 
 func main() {
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/providers/DustHoff/webrequest",
+		Address: "registry.terraform.io/DustHoff/webrequest",
 	}
 
 	err := providerserver.Serve(context.Background(), webRequest.NewProvider(version), opts)
