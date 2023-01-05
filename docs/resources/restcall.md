@@ -25,25 +25,25 @@ resource "webrequest_restcall" "call" {
 
   create = {
     method = "POST"
-    url    = "https://eoscet74ykdzldt.m.pipedream.net/create"
+    url    = "https://httpbin.org/post"
     body   = jsonencode({ "username" : "test", "email" : "test@example.com" })
   }
 
   read = {
-    method = "POST"
-    url    = "https://eoscet74ykdzldt.m.pipedream.net/get/{ID}"
+    method = "GET"
+    url    = "https://httpbin.org/get/{ID}"
     body   = jsonencode({ "id" : "{ID}", "username" : "test", "email" : "test@example.com" })
   }
 
   update = {
-    method = "POST"
-    url    = "https://eoscet74ykdzldt.m.pipedream.net/update"
+    method = "PUT"
+    url    = "https://httpbin.org/put"
     body   = jsonencode({ "username" : "test", "email" : "test@example.com" })
   }
 
   delete = {
-    method = "POST"
-    url    = "https://eoscet74ykdzldt.m.pipedream.net/delete"
+    method = "DELETE"
+    url    = "https://httpbin.org/delete"
     body   = jsonencode({ "username" : "test", "email" : "test@example.com" })
   }
 
