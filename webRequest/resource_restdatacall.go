@@ -132,11 +132,6 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"body": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "request body",
-				Validators: []validator.String{
-					stringvalidator.ExactlyOneOf(
-						path.MatchRoot("create"),
-					),
-				},
 			},
 			"key": schema.StringAttribute{
 				Optional:            true,
