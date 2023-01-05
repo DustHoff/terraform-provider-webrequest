@@ -17,9 +17,11 @@ func CustomCallDefaultValueModifier(method string) *ObjectDefaultValuePlanModifi
 	objectValue, _ := types.ObjectValue(map[string]attr.Type{
 		"method": types.StringType,
 		"url":    types.StringType,
+		"body":   types.StringType,
 	}, map[string]attr.Value{
 		"method": types.StringValue(method),
 		"url":    types.StringNull(),
+		"body":   types.StringNull(),
 	})
 	return &ObjectDefaultValuePlanModifier{
 		DefaultValue: objectValue,

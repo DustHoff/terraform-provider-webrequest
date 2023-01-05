@@ -5,17 +5,22 @@ import (
 	"curl-terraform-provider/client"
 	"curl-terraform-provider/helper/modifier"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"regexp"
 )
 
-var _ resource.Resource = &RestDataCall{}
+var _ resource.ResourceWithConfigValidators = &RestDataCall{}
 
 type RestDataCall struct {
 	client client.Client
@@ -39,6 +44,7 @@ type RestDataCallModel struct {
 type CustomAPICall struct {
 	Method types.String `tfsdk:"method"`
 	URL    types.String `tfsdk:"url"`
+	Body   types.String `tfsdk:"body"`
 }
 
 func NewRestDataCall() resource.Resource {
@@ -46,10 +52,21 @@ func NewRestDataCall() resource.Resource {
 }
 
 func (r *RestDataCall) sendRequest(ctx context.Context, data RestDataCallModel, custom CustomAPICall) client.Response {
-	request := r.client.NewRequest().SetMethod(custom.Method.ValueString()).SetURL(custom.URL.ValueString()).SetBody(data.Body.ValueString())
-	tflog.Debug(ctx, "Header Count "+fmt.Sprint(len(data.Header.Elements())))
+	if custom.URL.IsNull() {
+		custom.URL = types.StringValue(data.URL.ValueString() + "/" + data.ID.ValueString())
+	}
+	if custom.Body.IsNull() {
+		custom.Body = data.Body
+	}
+
+	regex := regexp.MustCompile("{ID}")
+
+	tflog.Info(ctx, ">> "+custom.Method.ValueString()+" "+regex.ReplaceAllString(custom.URL.ValueString(), data.ID.ValueString()))
+	tflog.Info(ctx, ">> "+regex.ReplaceAllString(custom.Body.ValueString(), data.ID.ValueString()))
+	request := r.client.NewRequest().SetMethod(custom.Method.ValueString()).SetURL(regex.ReplaceAllString(custom.URL.ValueString(), data.ID.ValueString())).SetBody(regex.ReplaceAllString(custom.Body.ValueString(), data.ID.ValueString()))
+
 	for key, value := range data.Header.Elements() {
-		tflog.Debug(ctx, "Adding Header "+key+"="+value.(types.String).ValueString())
+		tflog.Info(ctx, ">> "+"Adding Header "+key+"="+value.(types.String).ValueString())
 		request.AddHeader(key, value.(types.String).ValueString())
 	}
 	return request.Do()
@@ -59,12 +76,21 @@ func (r *RestDataCall) Metadata(ctx context.Context, req resource.MetadataReques
 	resp.TypeName = req.ProviderTypeName + "_restcall"
 }
 
+func (r *RestDataCall) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.Conflicting(
+			path.MatchRoot("url"),
+			path.MatchRoot("create"),
+		),
+	}
+}
+
 func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "This resource interact with any rest like endpoint. All CRUD types are handled during lifetime of" +
-			"this resource. fresh resource generate a create request, refreshing resource state result in a read action," +
-			"updating a attribute perform after apply a update action (partial update isn't supported) and finally deleting the resource performs a delete request" +
+		MarkdownDescription: "This resource interact with any rest like endpoint. All CRUD types are handled during lifetime of " +
+			"this resource. fresh resource generate a create request, refreshing resource state result in a read action, " +
+			"updating a attribute perform after apply a update action (partial update isn't supported) and finally deleting the resource performs a delete request " +
 			"the primary key ob the resulting object is append to the url",
 
 		Attributes: map[string]schema.Attribute{
@@ -92,15 +118,25 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 				},
 			},
 			"url": schema.StringAttribute{
-				Required:            true,
+				Optional:            true,
 				MarkdownDescription: "request url",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.ExactlyOneOf(
+						path.MatchRoot("create"),
+					),
 				},
 			},
 			"body": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "request body",
+				Validators: []validator.String{
+					stringvalidator.ExactlyOneOf(
+						path.MatchRoot("create"),
+					),
+				},
 			},
 			"key": schema.StringAttribute{
 				Optional:            true,
@@ -126,6 +162,7 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 				AttributeTypes: map[string]attr.Type{
 					"method": types.StringType,
 					"url":    types.StringType,
+					"body":   types.StringType,
 				},
 				PlanModifiers: []planmodifier.Object{
 					modifier.CustomCallDefaultValueModifier("POST"),
@@ -138,6 +175,7 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 				AttributeTypes: map[string]attr.Type{
 					"method": types.StringType,
 					"url":    types.StringType,
+					"body":   types.StringType,
 				},
 				PlanModifiers: []planmodifier.Object{
 					modifier.CustomCallDefaultValueModifier("GET"),
@@ -150,6 +188,7 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 				AttributeTypes: map[string]attr.Type{
 					"method": types.StringType,
 					"url":    types.StringType,
+					"body":   types.StringType,
 				}, PlanModifiers: []planmodifier.Object{
 					modifier.CustomCallDefaultValueModifier("PUT"),
 				},
@@ -161,6 +200,7 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 				AttributeTypes: map[string]attr.Type{
 					"method": types.StringType,
 					"url":    types.StringType,
+					"body":   types.StringType,
 				},
 				PlanModifiers: []planmodifier.Object{
 					modifier.CustomCallDefaultValueModifier("DELETE"),
@@ -205,10 +245,8 @@ func (r *RestDataCall) Create(ctx context.Context, req resource.CreateRequest, r
 	if customDiag != nil {
 		resp.Diagnostics.Append(customDiag...)
 	}
-	if custom.URL.IsNull() {
-		custom.URL = data.URL
-	}
 	response := r.sendRequest(ctx, data, custom)
+	tflog.Info(ctx, "<< "+response.Body())
 	data.StatusCode = types.Int64Value(int64(response.StatusCode()))
 	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
 		data.Result = types.StringValue(response.Body())
@@ -232,9 +270,6 @@ func (r *RestDataCall) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	if customDiag != nil {
 		resp.Diagnostics.Append(customDiag...)
-	}
-	if custom.URL.IsNull() {
-		custom.URL = types.StringValue(data.URL.ValueString() + "/" + data.ID.ValueString())
 	}
 	response := r.sendRequest(ctx, data, custom)
 	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
@@ -260,9 +295,6 @@ func (r *RestDataCall) Update(ctx context.Context, req resource.UpdateRequest, r
 	if customDiag != nil {
 		resp.Diagnostics.Append(customDiag...)
 	}
-	if custom.URL.IsNull() {
-		custom.URL = types.StringValue(data.URL.ValueString() + "/" + data.ID.ValueString())
-	}
 	response := r.sendRequest(ctx, data, custom)
 	data.StatusCode = types.Int64Value(int64(response.StatusCode()))
 	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
@@ -287,12 +319,6 @@ func (r *RestDataCall) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 	if customDiag != nil {
 		resp.Diagnostics.Append(customDiag...)
-	}
-	if custom.Method.IsNull() {
-		custom.Method = types.StringValue("DELETE")
-	}
-	if custom.URL.IsNull() {
-		custom.URL = types.StringValue(data.URL.ValueString() + "/" + data.ID.ValueString())
 	}
 	response := r.sendRequest(ctx, data, custom)
 	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {

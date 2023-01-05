@@ -1,7 +1,5 @@
 resource "webrequest_restcall" "call" {
-  url              = "https://eoscet74ykdzldt.m.pipedream.net"
   ignorestatuscode = true
-  body             = jsonencode({ "username" : "test", "email" : "test@example.com" })
   header = {
     Content-Type = "application/json"
     Accept       = "application/json"
@@ -10,21 +8,25 @@ resource "webrequest_restcall" "call" {
   create = {
     method = "POST"
     url    = "https://eoscet74ykdzldt.m.pipedream.net/create"
+    body   = jsonencode({ "username" : "test", "email" : "test@example.com" })
   }
 
   read = {
     method = "POST"
-    url    = "https://eoscet74ykdzldt.m.pipedream.net/get"
+    url    = "https://eoscet74ykdzldt.m.pipedream.net/get/{ID}"
+    body   = jsonencode({ "id" : "{ID}", "username" : "test", "email" : "test@example.com" })
   }
 
   update = {
     method = "POST"
     url    = "https://eoscet74ykdzldt.m.pipedream.net/update"
+    body   = jsonencode({ "username" : "test", "email" : "test@example.com" })
   }
 
   delete = {
     method = "POST"
     url    = "https://eoscet74ykdzldt.m.pipedream.net/delete"
+    body   = jsonencode({ "username" : "test", "email" : "test@example.com" })
   }
 
   lifecycle {
