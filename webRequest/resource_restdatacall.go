@@ -5,6 +5,7 @@ import (
 	"curl-terraform-provider/client"
 	"curl-terraform-provider/helper/modifier"
 	"fmt"
+	"github.com/antchfx/jsonquery"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"regexp"
+	"strings"
 )
 
 var _ resource.ResourceWithConfigValidators = &RestDataCall{}
@@ -33,6 +35,7 @@ type RestDataCallModel struct {
 	StatusCode       types.Int64  `tfsdk:"statuscode"`
 	URL              types.String `tfsdk:"url"`
 	Body             types.String `tfsdk:"body"`
+	Filter           types.String `tfsdk:"filter"`
 	IgnoreStatusCode types.Bool   `tfsdk:"ignorestatuscode"`
 	Header           types.Map    `tfsdk:"header"`
 	Create           types.Object `tfsdk:"create"`
@@ -132,6 +135,10 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"body": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "request body",
+			},
+			"filter": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "JSON path expression to filter selective the value of attribute result. The expression based on XPath",
 			},
 			"key": schema.StringAttribute{
 				Optional:            true,
@@ -240,12 +247,18 @@ func (r *RestDataCall) Create(ctx context.Context, req resource.CreateRequest, r
 	if customDiag != nil {
 		resp.Diagnostics.Append(customDiag...)
 	}
+
 	response := r.sendRequest(ctx, data, custom)
 	tflog.Info(ctx, "<< "+response.Body())
 	data.StatusCode = types.Int64Value(int64(response.StatusCode()))
 	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
-		data.Result = types.StringValue(response.Body())
-		data.ID = types.StringValue(fmt.Sprint(response.BodyToJSON()[data.Key.ValueString()]))
+		jsondoc, _ := jsonquery.Parse(strings.NewReader(response.Body()))
+		if !data.Filter.IsNull() {
+			data.Result = types.StringValue(fmt.Sprint(jsonquery.FindOne(jsondoc, data.Filter.ValueString()).Value()))
+		} else {
+			data.Result = types.StringValue(response.Body())
+		}
+		data.ID = types.StringValue(fmt.Sprint(jsonquery.FindOne(jsondoc, data.Key.ValueString()).Value()))
 	} else {
 		resp.Diagnostics.AddError("Failed to create data", "received response code "+fmt.Sprint(response.StatusCode()))
 	}

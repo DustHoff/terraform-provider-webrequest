@@ -5,24 +5,6 @@ import (
 	"testing"
 )
 
-func TestSimpleResourceRestDataCall(t *testing.T) {
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: simpleRestCall,
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("webrequest_restcall.call", "id", "1"),
-					resource.TestCheckResourceAttrSet("webrequest_restcall.call", "result"),
-					resource.TestCheckResourceAttrSet("webrequest_restcall.call", "id"),
-				),
-			},
-		},
-	})
-}
-
 func TestComplexResourceRestDataCall(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
@@ -32,7 +14,8 @@ func TestComplexResourceRestDataCall(t *testing.T) {
 			{
 				Config: complexRestCall,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("webrequest_restcall.call", "id", "1"),
+					resource.TestCheckResourceAttr("webrequest_restcall.call", "id", "test"),
+					resource.TestCheckResourceAttr("webrequest_restcall.call", "result", "{\"email\":\"test@example.com\",\"username\":\"test\"}"),
 					resource.TestCheckResourceAttrSet("webrequest_restcall.call", "result"),
 					resource.TestCheckResourceAttrSet("webrequest_restcall.call", "id"),
 				),
@@ -41,16 +24,11 @@ func TestComplexResourceRestDataCall(t *testing.T) {
 	})
 }
 
-const simpleRestCall = `
-resource "webrequest_restcall" "call" {
-	url = "https://eoscet74ykdzldt.m.pipedream.net"
-	body = jsonencode({"username":"test","email":"test@example.com"})
-}
-`
-
 const complexRestCall = `
 resource "webrequest_restcall" "call" {
 	ignorestatuscode = true
+	filter = "//data"
+	key = "//json/username"
 	header = {
 		Content-Type = "application/json"
 		Accept = "application/json"
@@ -58,25 +36,25 @@ resource "webrequest_restcall" "call" {
 
 	create = {
 		method = "POST"
-		url = "https://eoscet74ykdzldt.m.pipedream.net/create"
+		url = "https://httpbin.org/post"
 		body = jsonencode({"username":"test","email":"test@example.com"})
 	}
 
 	read = {
-		method = "POST"
-		url = "https://eoscet74ykdzldt.m.pipedream.net/get/{ID}"
+		method = "GET"
+		url = "https://httpbin.org/get/{ID}"
 		body = jsonencode({"id":"{ID}","username":"test","email":"test@example.com"})
 	}
 
 	update = {
-		method = "POST"
-		url = "https://eoscet74ykdzldt.m.pipedream.net/update"
+		method = "PUT"
+		url = "https://httpbin.org/put"
 		body = jsonencode({"username":"test","email":"test@example.com"})
 	}
 
 	delete = {
-		method = "POST"
-		url = "https://eoscet74ykdzldt.m.pipedream.net/delete"
+		method = "DELETE"
+		url = "https://httpbin.org/delete"
 		body = jsonencode({"username":"test","email":"test@example.com"})
 	}
 

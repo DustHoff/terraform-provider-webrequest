@@ -61,6 +61,7 @@ resource "webrequest_restcall" "call" {
 - `body` (String) request body
 - `create` (Object) manipulate the behavior for object creation (see [below for nested schema](#nestedatt--create))
 - `delete` (Object) manipulate the behavior for deleting the object (see [below for nested schema](#nestedatt--delete))
+- `filter` (String) JSON path expression to filter selective the value of attribute result. The expression based on XPath
 - `header` (Map of String) map of request header
 - `ignorestatuscode` (Boolean) ignores the statuscode on response validation
 - `key` (String) primary key of the received object, to generate/manipulate the request url

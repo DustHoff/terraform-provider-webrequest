@@ -45,6 +45,8 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20210512092938-c05353c2d58c // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/agext/levenshtein v1.2.2 // indirect
+	github.com/antchfx/jsonquery v1.3.0 // indirect
+	github.com/antchfx/xpath v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/atc0005/go-teams-notify/v2 v2.7.0 // indirect
