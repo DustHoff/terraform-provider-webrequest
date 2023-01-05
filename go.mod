@@ -3,6 +3,7 @@ module curl-terraform-provider
 go 1.19
 
 require (
+	github.com/antchfx/jsonquery v1.3.0
 	github.com/goreleaser/goreleaser v1.14.1
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
 	github.com/hashicorp/terraform-plugin-framework v1.0.1
@@ -45,7 +46,6 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20210512092938-c05353c2d58c // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/agext/levenshtein v1.2.2 // indirect
-	github.com/antchfx/jsonquery v1.3.0 // indirect
 	github.com/antchfx/xpath v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
