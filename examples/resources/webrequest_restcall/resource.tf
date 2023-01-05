@@ -1,5 +1,8 @@
 resource "webrequest_restcall" "call" {
   ignorestatuscode = true
+  filter           = "//data"
+  key              = "//json/username"
+
   header = {
     Content-Type = "application/json"
     Accept       = "application/json"

@@ -15,6 +15,9 @@ This resource interact with any rest like endpoint. All CRUD types are handled d
 ```terraform
 resource "webrequest_restcall" "call" {
   ignorestatuscode = true
+  filter           = "//data"
+  key              = "//json/username"
+
   header = {
     Content-Type = "application/json"
     Accept       = "application/json"
@@ -64,7 +67,7 @@ resource "webrequest_restcall" "call" {
 - `filter` (String) JSON path expression to filter selective the value of attribute result. The expression based on XPath
 - `header` (Map of String) map of request header
 - `ignorestatuscode` (Boolean) ignores the statuscode on response validation
-- `key` (String) primary key of the received object, to generate/manipulate the request url
+- `key` (String) primary key of the received object, to generate/manipulate the request url, use a JSON path expression to get the right value. The expression based on XPath
 - `read` (Object) manipulate the behavior for reading the object (see [below for nested schema](#nestedatt--read))
 - `update` (Object) manipulate the behavior for updating the object (see [below for nested schema](#nestedatt--update))
 - `url` (String) request url

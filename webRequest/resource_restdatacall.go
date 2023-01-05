@@ -143,7 +143,7 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"key": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "primary key of the received object, to generate/manipulate the request url",
+				MarkdownDescription: "primary key of the received object, to generate/manipulate the request url, use a JSON path expression to get the right value. The expression based on XPath ",
 				PlanModifiers: []planmodifier.String{
 					modifier.StringDefaultValue(types.StringValue("id")),
 				},
