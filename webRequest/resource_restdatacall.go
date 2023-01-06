@@ -100,7 +100,8 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 		MarkdownDescription: "This resource interact with any rest like endpoint. All CRUD types are handled during lifetime of " +
 			"this resource. fresh resource generate a create request, refreshing resource state result in a read action, " +
 			"updating a attribute perform after apply a update action (partial update isn't supported) and finally deleting the resource performs a delete request " +
-			"the primary key ob the resulting object is append to the url",
+			"the primary key ob the resulting object is append to the url " +
+			"You can use the placeholer {ID} in URL and Body attribute to append or add the resource id(primary key value) to your request",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
