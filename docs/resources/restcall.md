@@ -62,14 +62,14 @@ resource "webrequest_restcall" "call" {
 ### Optional
 
 - `body` (String) request body
-- `create` (Object) manipulate the behavior for object creation (see [below for nested schema](#nestedatt--create))
-- `delete` (Object) manipulate the behavior for deleting the object (see [below for nested schema](#nestedatt--delete))
+- `create` (Attributes) manipulate the behavior for object creation (see [below for nested schema](#nestedatt--create))
+- `delete` (Attributes) manipulate the behavior for deleting the object (see [below for nested schema](#nestedatt--delete))
 - `filter` (String) JSON path expression to filter selective the value of attribute result. The expression based on XPath
 - `header` (Map of String) map of request header
 - `ignorestatuscode` (Boolean) ignores the statuscode on response validation
 - `key` (String) primary key of the received object, to generate/manipulate the request url, use a JSON path expression to get the right value. The expression based on XPath
-- `read` (Object) manipulate the behavior for reading the object (see [below for nested schema](#nestedatt--read))
-- `update` (Object) manipulate the behavior for updating the object (see [below for nested schema](#nestedatt--update))
+- `read` (Attributes) manipulate the behavior for reading the object (see [below for nested schema](#nestedatt--read))
+- `update` (Attributes) manipulate the behavior for updating the object (see [below for nested schema](#nestedatt--update))
 - `url` (String) request url
 
 ### Read-Only
@@ -81,40 +81,56 @@ resource "webrequest_restcall" "call" {
 <a id="nestedatt--create"></a>
 ### Nested Schema for `create`
 
+Required:
+
+- `method` (String) HTTP Method to use for the request
+- `url` (String) Request URL to create the JSON Object.
+
 Optional:
 
-- `body` (String)
-- `method` (String)
-- `url` (String)
+- `body` (String) Custom request body for the request
+- `keepid` (Boolean) Flag to keep the initial resource id, even when the response contains a new one
 
 
 <a id="nestedatt--delete"></a>
 ### Nested Schema for `delete`
 
+Required:
+
+- `method` (String) HTTP Method to use for the request
+- `url` (String) Request URL to delete the JSON Object.
+
 Optional:
 
-- `body` (String)
-- `method` (String)
-- `url` (String)
+- `body` (String) Custom request body for the request
+- `keepid` (Boolean) Flag to keep the initial resource id, even when the response contains a new one
 
 
 <a id="nestedatt--read"></a>
 ### Nested Schema for `read`
 
+Required:
+
+- `method` (String) HTTP Method to use for the request
+- `url` (String) Request URL to read the JSON Object.
+
 Optional:
 
-- `body` (String)
-- `method` (String)
-- `url` (String)
+- `body` (String) Custom request body for the request
+- `keepid` (Boolean) Flag to keep the initial resource id, even when the response contains a new one
 
 
 <a id="nestedatt--update"></a>
 ### Nested Schema for `update`
 
+Required:
+
+- `method` (String) HTTP Method to use for the request
+- `url` (String) Request URL to update the JSON Object.
+
 Optional:
 
-- `body` (String)
-- `method` (String)
-- `url` (String)
+- `body` (String) Custom request body for the request
+- `keepid` (Boolean) Flag to keep the initial resource id, even when the response contains a new one
 
 

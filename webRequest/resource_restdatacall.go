@@ -8,7 +8,6 @@ import (
 	"github.com/antchfx/jsonquery"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -48,6 +47,7 @@ type CustomAPICall struct {
 	Method types.String `tfsdk:"method"`
 	URL    types.String `tfsdk:"url"`
 	Body   types.String `tfsdk:"body"`
+	KeepID types.Bool   `tfsdk:"keepid"`
 }
 
 func NewRestDataCall() resource.Resource {
@@ -55,10 +55,16 @@ func NewRestDataCall() resource.Resource {
 }
 
 func (r *RestDataCall) sendRequest(ctx context.Context, data RestDataCallModel, custom CustomAPICall) client.Response {
+
+	tflog.Info(ctx, "Configured URL "+data.URL.ValueString())
+	tflog.Info(ctx, "Configured Custom URL "+custom.URL.ValueString())
 	if custom.URL.IsNull() {
 		custom.URL = types.StringValue(data.URL.ValueString() + "/" + data.ID.ValueString())
 	}
-	if custom.Body.IsNull() {
+
+	tflog.Info(ctx, "Configured Body "+data.Body.ValueString())
+	tflog.Info(ctx, "Configured Custom Body "+custom.Body.ValueString())
+	if custom.Body.IsNull() || custom.Body.IsUnknown() {
 		custom.Body = data.Body
 	}
 
@@ -157,55 +163,95 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 					modifier.EmptyMapDefaultValue(),
 				},
 			},
-			"create": schema.ObjectAttribute{
+			"create": schema.SingleNestedAttribute{
 				Optional:            true,
-				Computed:            true,
 				MarkdownDescription: "manipulate the behavior for object creation",
-				AttributeTypes: map[string]attr.Type{
-					"method": types.StringType,
-					"url":    types.StringType,
-					"body":   types.StringType,
-				},
-				PlanModifiers: []planmodifier.Object{
-					modifier.CustomCallDefaultValueModifier("POST"),
+				Attributes: map[string]schema.Attribute{
+					"method": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "HTTP Method to use for the request",
+					},
+					"url": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "Request URL to create the JSON Object.",
+					},
+					"body": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "Custom request body for the request",
+					},
+					"keepid": schema.BoolAttribute{
+						Optional:            true,
+						MarkdownDescription: "Flag to keep the initial resource id, even when the response contains a new one",
+					},
 				},
 			},
-			"read": schema.ObjectAttribute{
+			"read": schema.SingleNestedAttribute{
 				Optional:            true,
 				Computed:            true,
 				MarkdownDescription: "manipulate the behavior for reading the object",
-				AttributeTypes: map[string]attr.Type{
-					"method": types.StringType,
-					"url":    types.StringType,
-					"body":   types.StringType,
-				},
-				PlanModifiers: []planmodifier.Object{
-					modifier.CustomCallDefaultValueModifier("GET"),
+				Attributes: map[string]schema.Attribute{
+					"method": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "HTTP Method to use for the request",
+					},
+					"url": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "Request URL to read the JSON Object.",
+					},
+					"body": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "Custom request body for the request",
+					},
+					"keepid": schema.BoolAttribute{
+						Optional:            true,
+						MarkdownDescription: "Flag to keep the initial resource id, even when the response contains a new one",
+					},
 				},
 			},
-			"update": schema.ObjectAttribute{
+			"update": schema.SingleNestedAttribute{
 				Optional:            true,
 				Computed:            true,
 				MarkdownDescription: "manipulate the behavior for updating the object",
-				AttributeTypes: map[string]attr.Type{
-					"method": types.StringType,
-					"url":    types.StringType,
-					"body":   types.StringType,
-				}, PlanModifiers: []planmodifier.Object{
-					modifier.CustomCallDefaultValueModifier("PUT"),
+				Attributes: map[string]schema.Attribute{
+					"method": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "HTTP Method to use for the request",
+					},
+					"url": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "Request URL to update the JSON Object.",
+					},
+					"body": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "Custom request body for the request",
+					},
+					"keepid": schema.BoolAttribute{
+						Optional:            true,
+						MarkdownDescription: "Flag to keep the initial resource id, even when the response contains a new one",
+					},
 				},
 			},
-			"delete": schema.ObjectAttribute{
+			"delete": schema.SingleNestedAttribute{
 				Optional:            true,
 				Computed:            true,
 				MarkdownDescription: "manipulate the behavior for deleting the object",
-				AttributeTypes: map[string]attr.Type{
-					"method": types.StringType,
-					"url":    types.StringType,
-					"body":   types.StringType,
-				},
-				PlanModifiers: []planmodifier.Object{
-					modifier.CustomCallDefaultValueModifier("DELETE"),
+				Attributes: map[string]schema.Attribute{
+					"method": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "HTTP Method to use for the request",
+					},
+					"url": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "Request URL to delete the JSON Object.",
+					},
+					"body": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "Custom request body for the request",
+					},
+					"keepid": schema.BoolAttribute{
+						Optional:            true,
+						MarkdownDescription: "Flag to keep the initial resource id, even when the response contains a new one",
+					},
 				},
 			},
 		},
@@ -246,9 +292,11 @@ func (r *RestDataCall) Create(ctx context.Context, req resource.CreateRequest, r
 
 	if customDiag != nil {
 		resp.Diagnostics.Append(customDiag...)
+		return
 	}
 
 	response := r.sendRequest(ctx, data, custom)
+	tflog.Info(ctx, "<< http/"+fmt.Sprint(response.StatusCode()))
 	tflog.Info(ctx, "<< "+response.Body())
 	data.StatusCode = types.Int64Value(int64(response.StatusCode()))
 	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
@@ -278,10 +326,21 @@ func (r *RestDataCall) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	if customDiag != nil {
 		resp.Diagnostics.Append(customDiag...)
+		return
 	}
 	response := r.sendRequest(ctx, data, custom)
+	tflog.Info(ctx, "<< http/"+fmt.Sprint(response.StatusCode()))
+	tflog.Info(ctx, "<< "+response.Body())
 	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
-		data.Result = types.StringValue(response.Body())
+		jsondoc, _ := jsonquery.Parse(strings.NewReader(response.Body()))
+		if !data.Filter.IsNull() {
+			data.Result = types.StringValue(fmt.Sprint(jsonquery.FindOne(jsondoc, data.Filter.ValueString()).Value()))
+		} else {
+			data.Result = types.StringValue(response.Body())
+		}
+		if !custom.KeepID.ValueBool() {
+			data.ID = types.StringValue(fmt.Sprint(jsonquery.FindOne(jsondoc, data.Key.ValueString()).Value()))
+		}
 	} else {
 		resp.Diagnostics.AddError("Failed to fetch data", "received response code "+fmt.Sprint(response.StatusCode()))
 	}
@@ -302,11 +361,22 @@ func (r *RestDataCall) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	if customDiag != nil {
 		resp.Diagnostics.Append(customDiag...)
+		return
 	}
 	response := r.sendRequest(ctx, data, custom)
+	tflog.Info(ctx, "<< http/"+fmt.Sprint(response.StatusCode()))
+	tflog.Info(ctx, "<< "+response.Body())
 	data.StatusCode = types.Int64Value(int64(response.StatusCode()))
 	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
-		data.Result = types.StringValue(response.Body())
+		jsondoc, _ := jsonquery.Parse(strings.NewReader(response.Body()))
+		if !data.Filter.IsNull() {
+			data.Result = types.StringValue(fmt.Sprint(jsonquery.FindOne(jsondoc, data.Filter.ValueString()).Value()))
+		} else {
+			data.Result = types.StringValue(response.Body())
+		}
+		if !custom.KeepID.ValueBool() {
+			data.ID = types.StringValue(fmt.Sprint(jsonquery.FindOne(jsondoc, data.Key.ValueString()).Value()))
+		}
 	} else {
 		resp.Diagnostics.AddError("Failed to update data", "received response code "+fmt.Sprint(response.StatusCode()))
 	}
@@ -327,8 +397,11 @@ func (r *RestDataCall) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 	if customDiag != nil {
 		resp.Diagnostics.Append(customDiag...)
+		return
 	}
 	response := r.sendRequest(ctx, data, custom)
+	tflog.Info(ctx, "<< http/"+fmt.Sprint(response.StatusCode()))
+	tflog.Info(ctx, "<< "+response.Body())
 	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
 		data.Result = types.StringValue(response.Body())
 	} else {
