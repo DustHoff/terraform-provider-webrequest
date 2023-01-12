@@ -27,6 +27,7 @@ func TestComplexResourceRestDataCall(t *testing.T) {
 const complexRestCall = `
 resource "webrequest_restcall" "call" {
 	body = jsonencode({"username":"test","email":"test@example.com"})
+	url = "https://httpbin.org/post"
 	ignorestatuscode = true
 	filter = "//data"
 	key = "//json/username"
@@ -37,7 +38,6 @@ resource "webrequest_restcall" "call" {
 
 	create = {
 		method = "POST"
-		url = "https://httpbin.org/post"
 	}
 
 	read = {

@@ -84,12 +84,6 @@ resource "webrequest_restcall" "call" {
 Required:
 
 - `method` (String) HTTP Method to use for the request
-- `url` (String) Request URL to create the JSON Object.
-
-Optional:
-
-- `body` (String) Custom request body for the request
-- `keepid` (Boolean) Flag to keep the initial resource id, even when the response contains a new one
 
 
 <a id="nestedatt--delete"></a>
@@ -103,6 +97,7 @@ Required:
 Optional:
 
 - `body` (String) Custom request body for the request
+- `filter` (String) Custom request body for the request
 - `keepid` (Boolean) Flag to keep the initial resource id, even when the response contains a new one
 
 
@@ -117,6 +112,7 @@ Required:
 Optional:
 
 - `body` (String) Custom request body for the request
+- `filter` (String) Custom request body for the request
 - `keepid` (Boolean) Flag to keep the initial resource id, even when the response contains a new one
 
 
@@ -131,6 +127,7 @@ Required:
 Optional:
 
 - `body` (String) Custom request body for the request
+- `filter` (String) Custom request body for the request
 - `keepid` (Boolean) Flag to keep the initial resource id, even when the response contains a new one
 
 
