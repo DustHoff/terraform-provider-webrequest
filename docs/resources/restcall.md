@@ -97,7 +97,7 @@ Required:
 Optional:
 
 - `body` (String) Custom request body for the request
-- `filter` (String) Custom request body for the request
+- `filter` (String) Custom result filter for the request
 - `keepid` (Boolean) Flag to keep the initial resource id, even when the response contains a new one
 
 
@@ -112,7 +112,7 @@ Required:
 Optional:
 
 - `body` (String) Custom request body for the request
-- `filter` (String) Custom request body for the request
+- `filter` (String) Custom result filter for the request
 - `keepid` (Boolean) Flag to keep the initial resource id, even when the response contains a new one
 
 
@@ -127,7 +127,7 @@ Required:
 Optional:
 
 - `body` (String) Custom request body for the request
-- `filter` (String) Custom request body for the request
+- `filter` (String) Custom result filter for the request
 - `keepid` (Boolean) Flag to keep the initial resource id, even when the response contains a new one
 
 

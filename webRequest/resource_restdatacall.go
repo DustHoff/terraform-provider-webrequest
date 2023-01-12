@@ -181,7 +181,7 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 					},
 					"filter": schema.StringAttribute{
 						Optional:            true,
-						MarkdownDescription: "Custom request body for the request",
+						MarkdownDescription: "Custom result filter for the request",
 					},
 					"keepid": schema.BoolAttribute{
 						Optional:            true,
@@ -211,7 +211,7 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 					},
 					"filter": schema.StringAttribute{
 						Optional:            true,
-						MarkdownDescription: "Custom request body for the request",
+						MarkdownDescription: "Custom result filter for the request",
 					},
 					"keepid": schema.BoolAttribute{
 						Optional:            true,
@@ -241,7 +241,7 @@ func (r *RestDataCall) Schema(ctx context.Context, req resource.SchemaRequest, r
 					},
 					"filter": schema.StringAttribute{
 						Optional:            true,
-						MarkdownDescription: "Custom request body for the request",
+						MarkdownDescription: "Custom result filter for the request",
 					},
 					"keepid": schema.BoolAttribute{
 						Optional:            true,
