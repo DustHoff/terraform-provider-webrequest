@@ -49,6 +49,7 @@ resource "webrequest_restcall" "call" {
 	update = {
 		method = "PUT"
 		url = "https://httpbin.org/put"
+		filter = "//data"
 		body = jsonencode({"username":"test","email":"test@example.com"})
 	}
 

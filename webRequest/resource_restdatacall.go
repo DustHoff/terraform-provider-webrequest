@@ -328,8 +328,12 @@ func (r *RestDataCall) Read(ctx context.Context, req resource.ReadRequest, resp 
 	tflog.Info(ctx, "<< "+response.Body())
 	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
 		jsondoc, _ := jsonquery.Parse(strings.NewReader(response.Body()))
-		if !data.Filter.IsNull() {
-			data.Result = types.StringValue(fmt.Sprint(jsonquery.FindOne(jsondoc, data.Filter.ValueString()).Value()))
+		if !data.Filter.IsNull() || !custom.Filter.IsNull() {
+			filter := data.Filter
+			if !custom.Filter.IsNull() {
+				filter = custom.Filter
+			}
+			data.Result = types.StringValue(fmt.Sprint(jsonquery.FindOne(jsondoc, filter.ValueString()).Value()))
 		} else {
 			data.Result = types.StringValue(response.Body())
 		}
@@ -364,8 +368,13 @@ func (r *RestDataCall) Update(ctx context.Context, req resource.UpdateRequest, r
 	data.StatusCode = types.Int64Value(int64(response.StatusCode()))
 	if (data.IgnoreStatusCode.ValueBool()) || (response.StatusCode() == 200) {
 		jsondoc, _ := jsonquery.Parse(strings.NewReader(response.Body()))
-		if !data.Filter.IsNull() {
-			data.Result = types.StringValue(fmt.Sprint(jsonquery.FindOne(jsondoc, data.Filter.ValueString()).Value()))
+
+		if !data.Filter.IsNull() || !custom.Filter.IsNull() {
+			filter := data.Filter
+			if !custom.Filter.IsNull() {
+				filter = custom.Filter
+			}
+			data.Result = types.StringValue(fmt.Sprint(jsonquery.FindOne(jsondoc, filter.ValueString()).Value()))
 		} else {
 			data.Result = types.StringValue(response.Body())
 		}
